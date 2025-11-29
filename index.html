@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Disturbing Stories - Scroll</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #fff;
+      background: #050816;
+      overflow-x: hidden;
+    }
+
+    /* VIDEO DE FONDO */
+    .bg-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      background: #000;
+    }
+
+    /* Capa oscura por encima del vídeo */
+    .bg-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(0,0,0,0.35), rgba(0,0,0,0.85));
+      z-index: 1;
+    }
+
+    /* Overlay FX por encima de casi todo */
+    .fx-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 4;
+      pointer-events: none;
+      opacity: 0.6;
+      mix-blend-mode: screen;
+    }
+
+    /* Contenido por encima de BG + overlay, pero en el mismo contexto que el bot */
+    .page-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .section {
+      position: relative;
+      min-height: 100vh;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      gap: 2.2rem;
+      overflow: hidden;
+    }
+
+    .content {
+      position: relative;
+      width: 100%;
+      max-width: 780px;
+      text-align: left;
+      z-index: 3;
+      padding: 1.5rem 2rem;
+      background: rgba(10, 10, 20, 0.65);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow:
+        0 14px 40px rgba(0,0,0,0.7),
+        0 0 40px rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      margin: 0 auto;
+    }
+
+    .content h1 {
+      font-size: clamp(1.9rem, 3.2vw, 2.6rem);
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      position: relative;
+    }
+
+    .content p {
+      font-size: 1.02rem;
+      opacity: 0.9;
+      line-height: 1.7;
+      max-width: 620px;
+      margin: 0.4rem 0 0;
+      min-height: 4em;
+      letter-spacing: 0.01em;
+    }
+
+    .typing-cursor::after {
+      content: "▋";
+      display: inline-block;
+      margin-left: 3px;
+      animation: blink 0.7s steps(1, start) infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      50.01%, 100% { opacity: 0; }
+    }
+
+    /* LOGO PRINCIPAL (posición 1) */
+    .logo-main {
+      width: 100%;
+      max-width: 420px;
+      display: block;
+      margin: 0 auto 1.2rem auto;
+      opacity: 0;
+      transform: scale(0.7) translateY(30px);
+      filter: blur(6px) brightness(0.7);
+      transition:
+        opacity 0.25s ease-out,
+        filter 0.35s ease-out;
+    }
+
+    .logo-main.visible {
+      opacity: 1;
+      filter: blur(0) brightness(1);
+      animation:
+        iconAppear 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards,
+        iconFloat 3.4s ease-in-out 0.6s infinite;
+    }
+
+    /* BOOKZ (posición 2) – 3x más grande */
+    .bookz-link {
+      display: block;
+      width: 100%;
+      max-width: 1080px;
+      margin: 1.3rem auto 0 auto;
+      text-decoration: none;
+    }
+
+    .bookz {
+      display: block;
+      width: 100%;
+      height: auto;
+      opacity: 0;
+      transform: scale(0.3) translateY(40px);
+      filter: blur(8px) brightness(0.6) contrast(1.3);
+      transition:
+        opacity 0.25s ease-out,
+        filter 0.35s ease-out;
+      cursor: pointer;
+    }
+
+    .bookz.visible {
+      opacity: 1;
+      filter: blur(0) brightness(1) contrast(1);
+      animation:
+        iconAppear 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards,
+        iconFloat 3.8s ease-in-out 0.6s infinite;
+    }
+
+    /* ANDROIDE + escala dinámica + clicable */
+    .bot {
+      position: fixed;
+      width: 600px;
+      max-width: 60vw;
+      height: auto;
+      top: 50%;
+      left: 50%;
+      z-index: 2;
+      pointer-events: auto;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: top 0.6s ease, left 0.6s ease;
+      filter: drop-shadow(0 0 18px rgba(255,255,255,0.35));
+      --botScale: 1;
+      animation: botFloat 3.8s ease-in-out infinite;
+    }
+
+    @keyframes botFloat {
+      0% {
+        transform: translate(-50%, -50%) scale(var(--botScale));
+      }
+      50% {
+        transform: translate(-50%, -54%) scale(calc(var(--botScale) * 1.03));
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(var(--botScale));
+      }
+    }
+
+    body.state-1 .bot {
+      left: 18%;
+      top: 60%;
+      --botScale: 0.75;
+    }
+
+    body.state-2 .bot {
+      left: 82%;
+      top: 70%;
+      --botScale: 1.05;
+    }
+
+    body.state-3 .bot {
+      left: 18%;
+      top: 110%;
+      --botScale: 1.5;
+    }
+
+    body.state-4 .bot {
+      left: 82%;
+      top: 80%;
+      --botScale: 1.08;
+    }
+
+    body.state-5 .bot {
+      left: 50%;
+      top: 85%;
+      --botScale: 1;
+    }
+
+    /* BURBUJA DE DIÁLOGO T.K. */
+    .tk-bubble {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -120%);
+      max-width: 420px;
+      padding: 0.8rem 1rem;
+      background: rgba(8, 10, 24, 0.96);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow:
+        0 10px 30px rgba(0,0,0,0.8),
+        0 0 20px rgba(0,255,200,0.25);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    }
+
+    .tk-bubble.visible {
+      opacity: 1;
+      transform: translate(-50%, -135%);
+    }
+
+    .tk-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0 10px;
+      border-style: solid;
+      border-color: rgba(8,10,24,0.96) transparent transparent transparent;
+      filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.7));
+    }
+
+    .tk-bubble-text {
+      min-height: 2.2em;
+    }
+
+    /* ICONOS – encima del androide */
+    .section-icon {
+      width: 320px;
+      height: 320px;
+      opacity: 0;
+      transform: scale(0.3) translateY(40px);
+      filter: blur(8px) brightness(0.4) contrast(1.4);
+      transition:
+        opacity 0.25s ease-out,
+        filter 0.35s ease-out;
+      z-index: 4;
+      align-self: center;
+    }
+
+    .section-icon img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .section-icon.visible {
+      opacity: 1;
+      filter: blur(0px) brightness(1) contrast(1);
+      animation:
+        iconAppear 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards,
+        iconFloat 3.8s ease-in-out 0.6s infinite;
+    }
+
+    /* Aparición sci-fi */
+    @keyframes iconAppear {
+      0% {
+        transform: scale(0.2) translateY(60px) skewX(-8deg);
+        filter: blur(12px) brightness(2) contrast(1.8) hue-rotate(10deg);
+      }
+      35% {
+        transform: scale(1.1) translateY(-12px) skewX(3deg);
+        filter: blur(3px) brightness(1.4) contrast(1.6) hue-rotate(-12deg);
+      }
+      65% {
+        transform: scale(0.96) translateY(6px) skewX(-2deg);
+        filter: blur(1px) brightness(0.9) contrast(1.1);
+      }
+      100% {
+        transform: scale(1) translateY(0) skewX(0deg);
+        filter: blur(0) brightness(1) contrast(1);
+      }
+    }
+
+    @keyframes iconFloat {
+      0%   { transform: translate(-4px, 0) scale(1); }
+      25%  { transform: translate(4px, -20px) scale(1.05); }
+      50%  { transform: translate(2px, 0) scale(1.02); }
+      75%  { transform: translate(-4px, -16px) scale(1.06); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    /* Glitch títulos (loop cada 2s) */
+    .title-glitch {
+      animation: titleGlitch 2s steps(2, end) infinite;
+    }
+
+    @keyframes titleGlitch {
+      0% {
+        text-shadow:
+          -2px 0 rgba(0,255,255,0.6),
+           2px 0 rgba(255,0,128,0.6);
+        transform: translate(0, 0);
+      }
+      15% {
+        text-shadow:
+          -4px 0 rgba(0,255,255,0.8),
+           3px 0 rgba(255,0,128,0.8);
+        transform: translate(-1px, 0);
+      }
+      30% {
+        text-shadow:
+           3px 0 rgba(0,255,255,0.8),
+          -3px 0 rgba(255,0,128,0.8);
+        transform: translate(1px, 0);
+      }
+      45% {
+        text-shadow:
+          -2px 0 rgba(0,255,255,0.7),
+           2px 0 rgba(255,0,128,0.7);
+        transform: translate(-1px, 0);
+      }
+      60% {
+        text-shadow:
+           1px 0 rgba(0,255,255,0.4),
+          -1px 0 rgba(255,0,128,0.4);
+        transform: translate(1px, 0);
+      }
+      100% {
+        text-shadow: none;
+        transform: translate(0,0);
+      }
+    }
+
+    .icon-pos-right,
+    .icon-pos-left,
+    .icon-pos-center-bottom {
+      align-self: center;
+    }
+
+    /* --------- FLECHA "CLICA EN T.K." --------- */
+    .tk-arrow-hint {
+      position: fixed;
+      z-index: 6;
+      pointer-events: none;
+      opacity: 1;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s ease-out;
+    }
+
+    .tk-arrow-hint.hidden {
+      opacity: 0;
+      display: none;
+    }
+
+    .tk-arrow-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      animation: arrowFloat 1.4s ease-in-out infinite;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+    }
+
+    .tk-arrow-text {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      background: rgba(10,10,20,0.9);
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow:
+        0 0 10px rgba(0,0,0,0.8),
+        0 0 16px rgba(0,255,200,0.3);
+    }
+
+    /* Flecha clásica: línea + punta, apuntando por defecto a la derecha */
+    .tk-arrow-icon {
+      position: relative;
+      width: 42px;
+      height: 4px;
+      background: #ffffff;
+      border-radius: 2px;
+      transform-origin: left center;
+    }
+
+    .tk-arrow-icon::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-left: 11px solid #ffffff;
+    }
+
+    @keyframes arrowFloat {
+      0%   { transform: translateY(0); }
+      50%  { transform: translateY(-8px); }
+      100% { transform: translateY(0); }
+    }
+
+    /* ---------- FOOTER ---------- */
+    .footer {
+      text-align: center;
+      font-size: 0.75rem;
+      opacity: 0.7;
+      padding: 0.75rem 1rem 1.5rem;
+      margin-top: -1rem;
+      z-index: 3;
+      position: relative;
+    }
+
+    .footer a {
+      color: #ffffff;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .footer a:hover {
+      border-bottom-color: rgba(255,255,255,0.8);
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+
+    @media (max-width: 1024px) {
+      .bot {
+        width: 480px;
+        max-width: 70vw;
+      }
+      .section-icon {
+        width: 260px;
+        height: 260px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .section {
+        padding: 1.5rem 1rem;
+        gap: 1.6rem;
+      }
+      .content {
+        padding: 1.25rem 1.4rem;
+        max-width: 94vw;
+      }
+      .content p {
+        max-width: 100%;
+      }
+      .bot {
+        width: 340px;
+        max-width: 80vw;
+      }
+      body.state-1 .bot,
+      body.state-2 .bot,
+      body.state-3 .bot,
+      body.state-4 .bot,
+      body.state-5 .bot {
+        left: 50%;
+        top: 58%;
+        --botScale: 1;
+      }
+      .section-icon {
+        width: min(65vw, 240px);
+        height: auto;
+      }
+      .bookz-link {
+        max-width: 90vw;
+      }
+      .tk-bubble {
+        max-width: 90vw;
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .content {
+        padding: 1rem 1.1rem;
+      }
+      .bot {
+        width: 280px;
+      }
+    }
+
+  </style>
+</head>
+<body class="state-1">
+
+  <!-- VIDEO DE FONDO -->
+  <video class="bg-video" autoplay muted loop playsinline preload="auto">
+    <source src="ASSETS/BG_WEBGUIA_v1_LQ.mp4" type="video/mp4">
+  </video>
+
+  <!-- OSCURECIDO DEL BG -->
+  <div class="bg-overlay"></div>
+
+  <!-- OVERLAY FX -->
+  <video class="fx-overlay" autoplay muted loop playsinline>
+    <source src="ASSETS/OVERLAY.webm" type="video/webm">
+  </video>
+
+  <!-- AUDIO DE FONDO -->
+  <audio id="bgMusic" src="ASSETS/BG_MUSIC.mp3" preload="auto" loop></audio>
+
+  <!-- CONTENIDO + ANDROIDE DENTRO DEL CONTEXTO -->
+  <div class="page-content">
+
+    <!-- PANTALLA 1 con LOGO -->
+    <section class="section">
+      <div class="content">
+        <img
+          src="ASSETS/LOGO_COLECCION_1.png"
+          alt="Disturbing Stories Logo"
+          class="logo-main"
+        >
+        <p>
+          Disturbing Stories es la puerta de entrada a un universo donde el terror y la ciencia ficción
+          se entrelazan para mostrar aquello que habita entre las grietas de lo real.
+        </p>
+      </div>
+    </section>
+
+    <!-- PANTALLA 2 -->
+    <section class="section">
+      <div class="content">
+        <h1>300 RELATOS, 20 LIBROS</h1>
+        <p>
+          Sus 300 relatos, repartidos en 20 libros, exploran sucesos inexplicables, criaturas ocultas
+          y fenómenos que desafían toda lógica humana.
+        </p>
+        <a
+          href="https://www.disturbingstories.com/store.html#tapablanda"
+          class="bookz-link"
+          target="_top"
+        >
+          <img
+            src="ASSETS/BOOKZ.png"
+            alt="Libros Disturbing Stories"
+            class="bookz"
+          >
+        </a>
+      </div>
+      <a
+        class="section-icon icon-pos-right"
+        href="https://www.disturbingstories.com/stories.html"
+        target="_top"
+      >
+        <img src="ASSETS/ICO_STORIES.png" alt="Stories">
+      </a>
+    </section>
+
+    <!-- PANTALLA 3 -->
+    <section class="section">
+      <div class="content">
+        <h1>¡LEED, MALDIT@S!</h1>
+        <p>
+          Puedes leer gratis una parte de este mundo aquí en la web, pero las historias más perturbadoras
+          solo viven en los libros.
+        </p>
+      </div>
+      <a
+        class="section-icon icon-pos-left"
+        href="https://www.disturbingstories.com/store.html"
+        target="_top"
+      >
+        <img src="ASSETS/ICO_STORE.png" alt="Store">
+      </a>
+    </section>
+
+    <!-- PANTALLA 4 -->
+    <section class="section">
+      <div class="content">
+        <h1>LAS STORIES COBRAN VIDA</h1>
+        <p>
+          Algunos relatos cobran vida a través de audios y cortometrajes accesibles con códigos QR,
+          haciendo que la experiencia traspase la pantalla.
+        </p>
+      </div>
+      <a
+        class="section-icon icon-pos-right"
+        href="https://www.disturbingstories.com/media.html"
+        target="_top"
+      >
+        <img src="ASSETS/ICO_MEDIA.png" alt="Media">
+      </a>
+    </section>
+
+    <!-- PANTALLA 5 -->
+    <section class="section">
+      <div class="content">
+        <h1>AQUÍ COMIENZA TU VIAJE</h1>
+        <p>
+          Si buscas misterio, sorpresa y relatos que te acompañen incluso después de cerrar la página,
+          aquí comienza tu viaje.
+        </p>
+      </div>
+      <a
+        class="section-icon icon-pos-center-bottom"
+        href="https://www.disturbingstories.com/random.html"
+        target="_top"
+      >
+        <img src="ASSETS/ICO_RANDOM.png" alt="Random">
+      </a>
+    </section>
+
+    <!-- ANDROIDE VOLADOR -->
+    <video class="bot" autoplay muted loop playsinline>
+      <source src="ASSETS/TK__Loop1.webm" type="video/webm">
+    </video>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      © Todos los derechos reservados.
+      <a href="https://www.disturbingstories.com" target="_top">DISTURBINGSTORIES:COM</a>
+    </div>
+
+  </div>
+
+  <!-- BURBUJA DE DIÁLOGO T.K. -->
+  <div class="tk-bubble" id="tkBubble">
+    <div class="tk-bubble-text" id="tkBubbleText"></div>
+  </div>
+
+  <!-- FLECHA / HINT "CLICA EN T.K." -->
+  <div class="tk-arrow-hint" id="tkArrowHint">
+    <div class="tk-arrow-inner">
+      <div class="tk-arrow-icon"></div>
+      <span class="tk-arrow-text">CLICA EN T.K.</span>
+    </div>
+  </div>
+
+  <script>
+    const sections = document.querySelectorAll(".section");
+    const body = document.body;
+
+    // Preparar textos para efecto escritura (párrafos)
+    const paragraphs = document.querySelectorAll(".content p");
+    paragraphs.forEach(p => {
+      const full = p.textContent.trim();
+      p.dataset.fulltext = full;
+      p.textContent = "";
+    });
+
+    function typeWriter(el, text, onComplete) {
+      const totalDuration = 1000;
+      const len = text.length || 1;
+      const delay = totalDuration / len;
+
+      let i = 0;
+      el.classList.add("typing-cursor");
+
+      function step() {
+        el.textContent = text.slice(0, i);
+        i++;
+        if (i <= text.length) {
+          setTimeout(step, delay);
+        } else {
+          el.classList.remove("typing-cursor");
+          el.dataset.typed = "true";
+          if (typeof onComplete === "function") onComplete();
+        }
+      }
+
+      step();
+    }
+
+    // --------- DIÁLOGOS T.K. + AUDIO ---------
+
+    const bot = document.querySelector(".bot");
+    const tkBubble = document.getElementById("tkBubble");
+    const tkBubbleText = document.getElementById("tkBubbleText");
+    const tkAudio = new Audio();
+
+    const tkDialog = {
+      1: "¡Hola! ¡Soy T.K.! Y te acompañaré en esta pequeña guía en la que descubrirás qué es Disturbing Stories.",
+      2: "Actualmente en publicación.",
+      3: "No hay excusa para no leer unas cuantas stories...",
+      4: "Cassettes y Tapes que te sumergirán en las stories...",
+      5: "¡Vamos, atrévete a entrar!"
+    };
+
+    const tkAudioMap = {
+      1: "ASSETS/TK_Frase1.mp3",
+      2: "ASSETS/TK_Frase2.mp3",
+      3: "ASSETS/TK_Frase3.mp3",
+      4: "ASSETS/TK_Frase4.mp3",
+      5: "ASSETS/TK_Frase5.mp3"
+    };
+
+    let bubbleTimeouts = [];
+    let bubbleHideTimeout = null;
+
+    function clearBubbleTyping() {
+      bubbleTimeouts.forEach(id => clearTimeout(id));
+      bubbleTimeouts = [];
+    }
+
+    function typeBubble(text) {
+      clearBubbleTyping();
+      tkBubbleText.textContent = "";
+      const totalDuration = 2000;
+      const len = text.length || 1;
+      const delay = totalDuration / len;
+      let i = 0;
+
+      function step() {
+        tkBubbleText.textContent = text.slice(0, i);
+        i++;
+        if (i <= text.length) {
+          const id = setTimeout(step, delay);
+          bubbleTimeouts.push(id);
+        }
+      }
+
+      step();
+    }
+
+    // --------- FLECHA "CLICA EN T.K." ---------
+    const tkArrowHint = document.getElementById("tkArrowHint");
+    const tkArrowIcon = document.querySelector(".tk-arrow-icon");
+    let arrowVisible = true;
+
+    function positionArrowAboveFirstBox() {
+      if (!arrowVisible) return;
+      const firstContent = document.querySelector(".section .content");
+      if (!firstContent || !tkArrowHint) return;
+
+      const rect = firstContent.getBoundingClientRect();
+      const arrowX = rect.left + rect.width / 2;
+      const arrowY = rect.top - 40; // un poco por encima de la caja
+
+      tkArrowHint.style.left = arrowX + "px";
+      tkArrowHint.style.top  = arrowY + "px";
+
+      updateArrowDirection();
+    }
+
+    function updateArrowDirection() {
+      if (!arrowVisible) return;
+      if (!tkArrowHint || !tkArrowIcon || !bot) return;
+
+      const arrowRect = tkArrowHint.getBoundingClientRect();
+      const arrowCx = arrowRect.left + arrowRect.width / 2;
+      const arrowCy = arrowRect.top + arrowRect.height / 2;
+
+      const botRect = bot.getBoundingClientRect();
+      const botCx = botRect.left + botRect.width / 2;
+      const botCy = botRect.top + botRect.height / 2;
+
+      const dx = botCx - arrowCx;
+      const dy = botCy - arrowCy;
+
+      const angleRad = Math.atan2(dy, dx);
+      const angleDeg = angleRad * (180 / Math.PI);
+
+      // Base de la flecha apunta a la derecha (0º), así que rotamos directamente a angleDeg
+      tkArrowIcon.style.transform = `rotate(${angleDeg}deg)`;
+    }
+
+    window.addEventListener("load", positionArrowAboveFirstBox);
+    window.addEventListener("resize", positionArrowAboveFirstBox);
+    window.addEventListener("scroll", positionArrowAboveFirstBox);
+
+    bot.addEventListener("click", () => {
+      // al primer click en T.K. escondemos la flecha para siempre
+      if (arrowVisible) {
+        arrowVisible = false;
+        if (tkArrowHint) {
+          tkArrowHint.classList.add("hidden");
+        }
+      }
+
+      let idx = 1;
+      for (let i = 1; i <= 5; i++) {
+        if (body.classList.contains("state-" + i)) {
+          idx = i;
+          break;
+        }
+      }
+
+      const text = tkDialog[idx];
+      const audioSrc = tkAudioMap[idx];
+      if (!text || !audioSrc) return;
+
+      // Posicionar burbuja centrada sobre el pecho del androide
+      const rect = bot.getBoundingClientRect();
+      const bubbleX = rect.left + rect.width / 2;
+      const bubbleY = rect.top + rect.height * 0.35;
+
+      tkBubble.style.left = bubbleX + "px";
+      tkBubble.style.top  = bubbleY + "px";
+
+      tkBubble.classList.add("visible");
+
+      // Ocultar burbuja a los 5 segundos
+      if (bubbleHideTimeout) {
+        clearTimeout(bubbleHideTimeout);
+      }
+      bubbleHideTimeout = setTimeout(() => {
+        tkBubble.classList.remove("visible");
+      }, 5000);
+
+      // Reproducir audio de frase
+      try {
+        tkAudio.pause();
+        tkAudio.currentTime = 0;
+        tkAudio.src = audioSrc;
+        tkAudio.play();
+      } catch (e) {}
+
+      // Escribir texto
+      typeBubble(text);
+    });
+
+    // --------- MUSICA DE FONDO ---------
+    const bgMusicEl = document.getElementById("bgMusic");
+    bgMusicEl.volume = 0.4;
+
+    let bgStarted = false;
+
+    function startBgMusic() {
+      if (bgStarted) return;
+      bgStarted = true;
+      bgMusicEl.play().catch(err => {
+        console.log("Error intentando reproducir BG_MUSIC:", err);
+        bgStarted = false;
+      });
+    }
+
+    const bgVideoEl = document.querySelector(".bg-video");
+    if (bgVideoEl) {
+      bgVideoEl.addEventListener("play", () => {
+        startBgMusic();
+      });
+    }
+
+    window.addEventListener("click", startBgMusic);
+    window.addEventListener("keydown", startBgMusic);
+
+    // --------- OBSERVER (texto, logos, ico, bookz, glitch títulos) ---------
+
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const idx = Array.from(sections).indexOf(entry.target) + 1;
+
+            for (let i = 1; i <= 5; i++) {
+              body.classList.remove("state-" + i);
+            }
+            body.classList.add("state-" + idx);
+
+            // cada vez que cambiamos de sección, recalculamos dirección de la flecha
+            positionArrowAboveFirstBox();
+
+            const p = entry.target.querySelector(".content p");
+            const icon = entry.target.querySelector(".section-icon");
+            const logo = entry.target.querySelector(".logo-main");
+            const bookz = entry.target.querySelector(".bookz");
+            const title = entry.target.querySelector(".content h1");
+
+            const afterTyping = () => {
+              if (icon) icon.classList.add("visible");
+              if (logo) logo.classList.add("visible");
+              if (bookz) bookz.classList.add("visible");
+              if (title) title.classList.add("title-glitch");
+            };
+
+            if (p && !p.dataset.typed) {
+              typeWriter(p, p.dataset.fulltext, afterTyping);
+            } else {
+              afterTyping();
+            }
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
+    sections.forEach(sec => observer.observe(sec));
+  </script>
+
+</body>
+</html>
