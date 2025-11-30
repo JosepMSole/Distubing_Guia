@@ -386,7 +386,6 @@
       border-bottom-color: rgba(255,255,255,0.8);
     }
 
-    /* NUEVO MENÚ SUPERIOR HORIZONTAL (ESFERAS REDONDAS) */
     .scroll-indicator {
       position: fixed;
       top: 16px;
@@ -394,19 +393,19 @@
       transform: translateX(-50%);
       z-index: 6;
       display: flex;
-      gap: 14px;
+      gap: 18px;
       align-items: center;
       justify-content: center;
       pointer-events: none;
     }
 
     .scroll-dot {
-      width: 16px;
-      height: 16px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       border: none;
-      background: rgba(255,255,255,0.35);
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+      background: rgba(255,255,255,0.4);
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.7);
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
@@ -414,8 +413,8 @@
 
     .scroll-dot.active {
       background: #ffffff;
-      box-shadow: 0 0 14px rgba(255,255,255,0.9);
-      transform: scale(1.25);
+      box-shadow: 0 0 18px rgba(255,255,255,0.95);
+      transform: scale(1.35);
     }
 
     .bot-prompt {
@@ -579,12 +578,12 @@
 
       .scroll-indicator {
         top: 10px;
-        gap: 10px;
+        gap: 14px;
       }
 
       .scroll-dot {
-        width: 14px;
-        height: 14px;
+        width: 30px;
+        height: 30px;
       }
     }
 
@@ -723,7 +722,6 @@
     <div class="tk-bubble-text" id="tkBubbleText"></div>
   </div>
 
-  <!-- NUEVO MENÚ SUPERIOR HORIZONTAL -->
   <div class="scroll-indicator">
     <button class="scroll-dot" data-index="1" type="button"></button>
     <button class="scroll-dot" data-index="2" type="button"></button>
@@ -788,9 +786,24 @@
     scrollDots.forEach(dot => {
       dot.addEventListener("click", () => {
         const idx = parseInt(dot.dataset.index, 10);
-        const target = sections[idx - 1];
-        if (target) {
-          target.scrollIntoView({ behavior: "smooth" });
+
+        for (let i = 1; i <= 5; i++) {
+          body.classList.remove("state-" + i);
+        }
+        body.classList.add("state-" + idx);
+        setActiveDot(idx);
+        updateBotPrompt(idx);
+        refreshUiPositions();
+
+        if (idx === 5) {
+          const doc = document.documentElement;
+          const targetScroll = doc.scrollHeight - window.innerHeight;
+          window.scrollTo({ top: targetScroll, behavior: "smooth" });
+        } else {
+          const target = sections[idx - 1];
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth" });
+          }
         }
       });
     });
@@ -1060,18 +1073,19 @@
     window.addEventListener("click", startBgMusic);
     window.addEventListener("keydown", startBgMusic);
 
-    function isMobile() {
-      return window.innerWidth <= 768;
-    }
-
     function preventUserScroll(e) {
-      if (isMobile()) {
-        e.preventDefault();
-      }
+      e.preventDefault();
     }
 
     window.addEventListener("touchmove", preventUserScroll, { passive: false });
     window.addEventListener("wheel", preventUserScroll, { passive: false });
+
+    window.addEventListener("keydown", (e) => {
+      const keys = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", "Space", " "];
+      if (keys.includes(e.code) || keys.includes(e.key)) {
+        e.preventDefault();
+      }
+    });
 
     const observer = new IntersectionObserver(
       entries => {
