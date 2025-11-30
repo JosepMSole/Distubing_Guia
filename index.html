@@ -393,15 +393,74 @@
       transform: translateX(-50%);
       z-index: 6;
       display: flex;
-      gap: 18px;
+      gap: 22px;
       align-items: center;
       justify-content: center;
       pointer-events: none;
     }
 
+    .volume-wrapper {
+      pointer-events: auto;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.55);
+      box-shadow: 0 0 12px rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 140px;
+      gap: 8px;
+    }
+
+    .volume-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #000;
+      box-shadow: 0 0 10px rgba(255,255,255,0.8);
+      flex-shrink: 0;
+    }
+
+    #volumeSlider {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.35);
+      outline: none;
+    }
+
+    #volumeSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 12px rgba(255,255,255,0.9);
+      cursor: pointer;
+      margin-top: -6px;
+    }
+
+    #volumeSlider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 12px rgba(255,255,255,0.9);
+      cursor: pointer;
+    }
+
     .scroll-dot {
-      width: 24px;
-      height: 24px;
+      position: relative;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       border: none;
       background: rgba(255,255,255,0.4);
@@ -409,12 +468,51 @@
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scroll-dot::before {
+      content: attr(data-index);
+      font-weight: 700;
+      font-size: 18px;
+      color: #000;
+    }
+
+    .scroll-dot::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      border-width: 9px 7px 0 7px;
+      border-style: solid;
+      border-color: #ffffff transparent transparent transparent;
+      opacity: 0;
+      transform: translate(-50%, 8px) scale(0.9);
     }
 
     .scroll-dot.active {
       background: #ffffff;
       box-shadow: 0 0 18px rgba(255,255,255,0.95);
       transform: scale(1.35);
+    }
+
+    .scroll-dot.active::after {
+      opacity: 1;
+      animation: arrowPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes arrowPulse {
+      0% {
+        transform: translate(-50%, 6px) scale(0.9);
+      }
+      50% {
+        transform: translate(-50%, 14px) scale(1.08);
+      }
+      100% {
+        transform: translate(-50%, 6px) scale(0.9);
+      }
     }
 
     .bot-prompt {
@@ -578,12 +676,35 @@
 
       .scroll-indicator {
         top: 10px;
-        gap: 14px;
+        gap: 18px;
       }
 
       .scroll-dot {
-        width: 30px;
-        height: 30px;
+        width: 60px;
+        height: 60px;
+      }
+
+      .scroll-dot::before {
+        font-size: 20px;
+      }
+
+      .volume-wrapper {
+        min-width: 150px;
+      }
+
+      #volumeSlider {
+        height: 8px;
+      }
+
+      #volumeSlider::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+        margin-top: -6px;
+      }
+
+      #volumeSlider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
       }
     }
 
@@ -723,6 +844,10 @@
   </div>
 
   <div class="scroll-indicator">
+    <div class="volume-wrapper">
+      <div class="volume-icon">🔊</div>
+      <input type="range" id="volumeSlider" min="0" max="100" value="40">
+    </div>
     <button class="scroll-dot" data-index="1" type="button"></button>
     <button class="scroll-dot" data-index="2" type="button"></button>
     <button class="scroll-dot" data-index="3" type="button"></button>
@@ -783,28 +908,25 @@
       });
     }
 
+    function goToSection(idx) {
+      for (let i = 1; i <= 5; i++) {
+        body.classList.remove("state-" + i);
+      }
+      body.classList.add("state-" + idx);
+      setActiveDot(idx);
+      updateBotPrompt(idx);
+      refreshUiPositions();
+
+      const target = sections[idx - 1];
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+
     scrollDots.forEach(dot => {
       dot.addEventListener("click", () => {
         const idx = parseInt(dot.dataset.index, 10);
-
-        for (let i = 1; i <= 5; i++) {
-          body.classList.remove("state-" + i);
-        }
-        body.classList.add("state-" + idx);
-        setActiveDot(idx);
-        updateBotPrompt(idx);
-        refreshUiPositions();
-
-        if (idx === 5) {
-          const doc = document.documentElement;
-          const targetScroll = doc.scrollHeight - window.innerHeight;
-          window.scrollTo({ top: targetScroll, behavior: "smooth" });
-        } else {
-          const target = sections[idx - 1];
-          if (target) {
-            target.scrollIntoView({ behavior: "smooth" });
-          }
-        }
+        goToSection(idx);
       });
     });
 
@@ -990,6 +1112,13 @@
     window.addEventListener("resize", refreshUiPositions);
     window.addEventListener("scroll", refreshUiPositions);
 
+    let currentVolume = 0.4;
+
+    function applyVolume() {
+      bgMusicEl.volume = currentVolume;
+      tkAudio.volume = currentVolume;
+    }
+
     function handleSpeak(fromSphere) {
       if (tkPromptVisible) {
         hideTkPrompt();
@@ -1021,6 +1150,7 @@
         tkAudio.pause();
         tkAudio.currentTime = 0;
         tkAudio.src = audioSrc;
+        tkAudio.volume = currentVolume;
         tkAudio.play();
       } catch (e) {}
 
@@ -1051,7 +1181,7 @@
     }
 
     const bgMusicEl = document.getElementById("bgMusic");
-    bgMusicEl.volume = 0.4;
+    bgMusicEl.volume = currentVolume;
 
     let bgStarted = false;
 
@@ -1131,6 +1261,20 @@
     );
 
     sections.forEach(sec => observer.observe(sec));
+
+    const volumeSlider = document.getElementById("volumeSlider");
+
+    function setVolumeFromSlider() {
+      const v = parseInt(volumeSlider.value, 10);
+      currentVolume = Math.max(0, Math.min(1, v / 100));
+      applyVolume();
+      if (!bgStarted && currentVolume > 0) {
+        startBgMusic();
+      }
+    }
+
+    volumeSlider.addEventListener("input", setVolumeFromSlider);
+    applyVolume();
   </script>
 
 </body>
